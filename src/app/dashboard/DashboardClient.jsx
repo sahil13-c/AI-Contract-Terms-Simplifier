@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { signOut } from '@/actions/auth';
 import { deleteDocument } from '@/actions/documents';
@@ -26,6 +26,22 @@ export default function DashboardClient({ initialDocuments, user }) {
 
     const handleSignOut = async () => {
         await signOut();
+    };
+
+    const refreshDocuments = async () => {
+        try {
+            const response = await fetch('/api/refresh-documents', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            
+            if (response.ok) {
+                const { documents: updatedDocs } = await response.json();
+                setDocuments(updatedDocs);
+            }
+        } catch (error) {
+            console.error('Failed to refresh documents:', error);
+        }
     };
 
     const handleDelete = async (documentId) => {
@@ -76,6 +92,12 @@ export default function DashboardClient({ initialDocuments, user }) {
                         </Link>
                         <div className="flex items-center gap-4">
                             <span className="text-sm text-slate-600">{user.email}</span>
+                            {documents.some(doc => doc.status === 'processing') && (
+                                <Button variant="outline" size="sm" onClick={refreshDocuments}>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Refresh
+                                </Button>
+                            )}
                             <Button variant="outline" size="sm" onClick={handleSignOut}>
                                 <LogOut className="h-4 w-4 mr-2" />
                                 Sign Out

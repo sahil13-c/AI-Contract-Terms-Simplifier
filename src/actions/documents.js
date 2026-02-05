@@ -1,7 +1,6 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
 
 /**
  * Get all documents for the current user
@@ -86,7 +85,6 @@ export async function createDocument(documentData) {
         return { document: null, error: error.message };
     }
 
-    revalidatePath('/dashboard');
     return { document, error: null };
 }
 
@@ -112,7 +110,6 @@ export async function updateDocumentStatus(documentId, status) {
         return { error: error.message };
     }
 
-    revalidatePath('/dashboard');
     return { error: null };
 }
 
@@ -128,22 +125,17 @@ export async function deleteDocument(documentId) {
         return { error: 'Not authenticated' };
     }
 
-    // First, delete the file from storage
-    const { data: document } = await supabase
-        .from('documents')
-        .select('file_url')
-        .eq('id', documentId)
-        .eq('user_id', user.id)
-        .single();
+    // First delete analysis (cascading deletes will handle related records)
+    const { error: analysisError } = await supabase
+        .from('analyses')
+        .delete()
+        .eq('document_id', documentId);
 
-    if (document?.file_url) {
-        const fileName = document.file_url.split('/').pop();
-        await supabase.storage
-            .from('documents')
-            .remove([`${user.id}/${fileName}`]);
+    if (analysisError) {
+        return { error: analysisError.message };
     }
 
-    // Then delete the document record
+    // Then delete the document
     const { error } = await supabase
         .from('documents')
         .delete()
@@ -154,6 +146,5 @@ export async function deleteDocument(documentId) {
         return { error: error.message };
     }
 
-    revalidatePath('/dashboard');
     return { error: null };
 }
