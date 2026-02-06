@@ -395,7 +395,7 @@ export default function AnalysisView({ analysis, document, error }) {
                                                         {clause.risk_level.toUpperCase()}
                                                     </Badge>
                                                 </div>
-                                                <CardDescription className="flex items-center gap-4">
+                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                                     <span className="flex items-center gap-1">
                                                         {clause.category === 'liability' && <Shield className="h-4 w-4 text-red-500" />}
                                                         {clause.category === 'intellectual_property' && <Lock className="h-4 w-4 text-orange-500" />}
@@ -413,7 +413,7 @@ export default function AnalysisView({ analysis, document, error }) {
                                                             Section {clause.section}
                                                         </Badge>
                                                     )}
-                                                </CardDescription>
+                                                </div>
                                             </div>
                                         </div>
                                     </CardHeader>
