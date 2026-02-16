@@ -7,6 +7,7 @@ import { deleteDocument } from '@/actions/documents';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
     FileText,
     Upload,
@@ -34,7 +35,7 @@ export default function DashboardClient({ initialDocuments, user }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             });
-            
+
             if (response.ok) {
                 const { documents: updatedDocs } = await response.json();
                 setDocuments(updatedDocs);
@@ -62,7 +63,7 @@ export default function DashboardClient({ initialDocuments, user }) {
             case 'failed':
                 return <AlertTriangle className="h-4 w-4 text-red-600" />;
             default:
-                return <Clock className="h-4 w-4 text-yellow-600" />;
+                return <Clock className="h-4 w-4 text-slate-500" />;
         }
     };
 
@@ -77,27 +78,28 @@ export default function DashboardClient({ initialDocuments, user }) {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
             {/* Header */}
-            <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
+            <header className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
-                        <Link href="/" className="flex items-center gap-2">
-                            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-lg">
-                                <FileText className="h-6 w-6 text-white" />
+                        <Link href="/" className="flex items-center gap-3">
+                            <div className="bg-blue-600 p-2 rounded-lg text-white">
+                                <FileText className="h-6 w-6" />
                             </div>
-                            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                            <span className="text-xl font-bold text-slate-900 dark:text-white">
                                 ContractAI
                             </span>
                         </Link>
                         <div className="flex items-center gap-4">
-                            <span className="text-sm text-slate-600">{user.email}</span>
+                            <span className="text-sm text-slate-500 hidden sm:block">{user.email}</span>
                             {documents.some(doc => doc.status === 'processing') && (
                                 <Button variant="outline" size="sm" onClick={refreshDocuments}>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     Refresh
                                 </Button>
                             )}
+                            <ThemeToggle />
                             <Button variant="outline" size="sm" onClick={handleSignOut}>
                                 <LogOut className="h-4 w-4 mr-2" />
                                 Sign Out
@@ -109,36 +111,43 @@ export default function DashboardClient({ initialDocuments, user }) {
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
-                <div className="space-y-6">
+                <div className="space-y-8">
                     {/* Welcome Section */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-slate-900">Your Documents</h1>
-                            <p className="text-slate-600 mt-1">Upload and analyze your contracts</p>
+                            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                                Your Documents
+                            </h1>
+                            <p className="text-slate-500 dark:text-slate-400">
+                                Upload and analyze your contracts with AI
+                            </p>
                         </div>
                         <Button
                             onClick={() => setShowUpload(true)}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                            size="lg"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
-                            <Upload className="h-4 w-4 mr-2" />
+                            <Upload className="h-5 w-5 mr-2" />
                             Upload Contract
                         </Button>
                     </div>
 
                     {/* Documents Grid */}
                     {documents.length === 0 ? (
-                        <Card className="border-2 border-dashed border-slate-300">
+                        <Card className="border-2 border-dashed border-slate-200 dark:border-slate-800 bg-transparent shadow-none">
                             <CardContent className="flex flex-col items-center justify-center py-16">
-                                <FileText className="h-16 w-16 text-slate-400 mb-4" />
-                                <h3 className="text-lg font-semibold text-slate-900 mb-2">No documents yet</h3>
-                                <p className="text-slate-600 mb-4 text-center max-w-md">
+                                <div className="p-6 rounded-full bg-slate-100 dark:bg-slate-800 mb-6">
+                                    <FileText className="h-16 w-16 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">No documents yet</h3>
+                                <p className="text-slate-500 mb-6 text-center max-w-md">
                                     Upload your first contract to get started with AI-powered analysis
                                 </p>
                                 <Button
                                     onClick={() => setShowUpload(true)}
-                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                                    size="lg"
                                 >
-                                    <Upload className="h-4 w-4 mr-2" />
+                                    <Upload className="h-5 w-5 mr-2" />
                                     Upload Your First Contract
                                 </Button>
                             </CardContent>
@@ -146,30 +155,38 @@ export default function DashboardClient({ initialDocuments, user }) {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {documents.map((doc) => (
-                                <Card key={doc.id} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                                    <CardHeader>
+                                <Card key={doc.id} className="hover:shadow-lg transition-shadow duration-200 group border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                                    <CardHeader className="pb-3">
                                         <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <CardTitle className="text-lg line-clamp-2">{doc.title}</CardTitle>
-                                                <CardDescription className="mt-2">
-                                                    {new Date(doc.created_at).toLocaleDateString()}
+                                            <div className="flex-1 mr-3">
+                                                <CardTitle className="text-lg font-semibold line-clamp-1 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                    {doc.title}
+                                                </CardTitle>
+                                                <CardDescription className="mt-1 text-xs text-slate-500">
+                                                    {new Date(doc.created_at).toLocaleDateString(undefined, {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
                                                 </CardDescription>
                                             </div>
-                                            {getStatusIcon(doc.status)}
+                                            <div className="mt-1">
+                                                {getStatusIcon(doc.status)}
+                                            </div>
                                         </div>
                                     </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="flex items-center justify-between text-sm text-slate-600">
-                                            <span>{doc.pages} pages</span>
-                                            <Badge variant={getStatusBadge(doc.status)}>
-                                                {doc.status.toUpperCase()}
+                                    <CardContent>
+                                        <div className="flex items-center justify-between text-sm mb-6">
+                                            <span className="text-slate-500 dark:text-slate-400">{doc.pages} pages</span>
+                                            <Badge variant={getStatusBadge(doc.status)} className="capitalize">
+                                                {doc.status}
                                             </Badge>
                                         </div>
 
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-3">
                                             {doc.status === 'completed' && (
                                                 <Link href={`/dashboard/analysis/${doc.id}`} className="flex-1">
-                                                    <Button variant="outline" className="w-full">
+                                                    <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
                                                         <Eye className="h-4 w-4 mr-2" />
                                                         View Analysis
                                                     </Button>
@@ -179,7 +196,7 @@ export default function DashboardClient({ initialDocuments, user }) {
                                                 variant="outline"
                                                 size="icon"
                                                 onClick={() => handleDelete(doc.id)}
-                                                className="text-red-600 hover:text-red-700"
+                                                className="border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:border-slate-800 dark:hover:bg-red-950/20"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

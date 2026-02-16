@@ -1,129 +1,201 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
+import { RiskMeter, LinearRiskMeter, ComplexityGauge } from '@/components/RiskMeters';
+import { RiskAlertList } from '@/components/RiskAlerts';
+import { RiskDistributionChart } from '@/components/RiskDistributionChart';
+import { ContractTypeDisplay, FinancialExposureCard } from '@/components/ContractInfo';
+import {
+    GlassCard,
+    GlassCardHeader,
+    GlassCardTitle,
+    GlassCardDescription,
+    GlassCardContent,
+} from '@/components/ui/glass-card';
+import { GlowButton } from '@/components/ui/glow-button';
+import dynamic from 'next/dynamic';
+
+const PDFViewer = dynamic(() => import('@/components/PDFViewer').then(mod => mod.PDFViewer), {
+    ssr: false,
+    loading: () => (
+        <div className="flex items-center justify-center h-full bg-slate-100 dark:bg-slate-950">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+    ),
+});
+import { RoleSwitcher } from '@/components/RoleSwitcher';
+import { AnalysisProgress } from '@/components/AnalysisProgress';
 import {
     CheckCircle2,
     XCircle,
     AlertTriangle,
     FileText,
     Shield,
-    Scale,
     DollarSign,
     Clock,
-    Lock,
     ArrowLeft,
     BarChart3,
     MessageSquare,
     Download,
     Share2,
-    TrendingUp,
-    Users,
-    Eye,
-    Zap,
-    Target,
-    Award,
-    AlertCircle,
+    LayoutPanelLeft,
+    Maximize2,
+    Minimize2
 } from 'lucide-react';
 
 export default function AnalysisView({ analysis, document, error }) {
     const [activeTab, setActiveTab] = useState('overview');
+    const [showPdf, setShowPdf] = useState(false);
+    const [highlightedPage, setHighlightedPage] = useState(1);
+    const [selectedRole, setSelectedRole] = useState('primary');
 
-    // Handle error or missing analysis
-    if (error || !analysis) {
+    // Auto-collapse PDF on small screens or based on preference could be added here
+
+    // Handle processing state
+    if (document?.status === 'processing') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
-                <div className="max-w-4xl mx-auto space-y-6">
-                    {/* Header */}
-                    <div className="flex items-center gap-4">
-                        <Link href="/dashboard">
-                            <Button variant="outline" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                                {document?.title || 'Document Analysis'}
-                            </h1>
-                            <p className="text-slate-600 mt-2">
-                                {document?.status === 'processing' ? 'Analysis in Progress' : 
-                                 document?.status === 'failed' ? 'Analysis Failed' : 'Analysis Not Available'}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Error or Status Message */}
-                    <Card className="border-0 shadow-lg bg-white/90 backdrop-blur">
-                        <CardContent className="pt-6">
-                            {error ? (
-                                <Alert className="border-red-200 bg-red-50">
-                                    <XCircle className="h-4 w-4 text-red-600" />
-                                    <AlertTitle className="text-red-900">Analysis Error</AlertTitle>
-                                    <AlertDescription className="text-red-800">
-                                        {error}
-                                    </AlertDescription>
-                                </Alert>
-                            ) : document?.status === 'processing' ? (
-                                <Alert className="border-blue-200 bg-blue-50">
-                                    <AlertTriangle className="h-4 w-4 text-blue-600" />
-                                    <AlertTitle className="text-blue-900">Analysis in Progress</AlertTitle>
-                                    <AlertDescription className="text-blue-800">
-                                        Your document is currently being analyzed. This usually takes 1-2 minutes. 
-                                        Please check back in a few moments.
-                                    </AlertDescription>
-                                </Alert>
-                            ) : document?.status === 'failed' ? (
-                                <Alert className="border-red-200 bg-red-50">
-                                    <XCircle className="h-4 w-4 text-red-600" />
-                                    <AlertTitle className="text-red-900">Analysis Failed</AlertTitle>
-                                    <AlertDescription className="text-red-800">
-                                        We couldn't analyze your document. Please try uploading it again, 
-                                        or contact support if the problem persists.
-                                    </AlertDescription>
-                                </Alert>
-                            ) : (
-                                <Alert className="border-amber-200 bg-amber-50">
-                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                    <AlertTitle className="text-amber-900">No Analysis Available</AlertTitle>
-                                    <AlertDescription className="text-amber-800">
-                                        No analysis data found for this document. The analysis may not have completed yet.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                            
-                            <div className="mt-6 flex gap-2">
-                                <Link href="/dashboard">
-                                    <Button variant="outline">
-                                        <ArrowLeft className="h-4 w-4 mr-2" />
-                                        Back to Dashboard
-                                    </Button>
-                                </Link>
-                                {document?.status === 'processing' && (
-                                    <Button onClick={() => window.location.reload()}>
-                                        Refresh Status
-                                    </Button>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+            <div className="min-h-screen p-8 flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                <AnalysisProgress />
             </div>
         );
     }
 
-    // Transform risk metrics array to object
-    const riskMetrics = {};
-    analysis.riskMetrics?.forEach((metric) => {
-        riskMetrics[metric.category] = metric.score;
-    });
+    // Handle error or missing analysis
+    if (error || !analysis) {
+        return <ErrorView error={error} document={document} />;
+    }
 
+    const togglePdfView = () => setShowPdf(!showPdf);
+
+    const handleClauseClick = (page) => {
+        if (page) {
+            setHighlightedPage(page);
+            if (!showPdf) setShowPdf(true);
+        }
+    };
+
+    return (
+        <div className="h-screen flex flex-col overflow-hidden bg-background">
+            {/* Top Header - Fixed */}
+            <header className="border-b border-border bg-background z-10 flex-none px-4 py-3 shadow-sm">
+                <div className="flex items-center justify-between gap-4 max-w-[1920px] mx-auto w-full">
+                    <div className="flex items-center gap-4">
+                        <Link href="/dashboard">
+                            <Button variant="ghost" size="icon">
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-xl font-bold truncate max-w-[300px] md:max-w-md text-foreground">
+                                {document?.title || 'Contract Analysis'}
+                            </h1>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground hidden md:flex">
+                                <Badge variant="outline" className="text-[10px] h-5">
+                                    {document?.file_name}
+                                </Badge>
+                                <span>•</span>
+                                <span>{new Date().toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant={showPdf ? "default" : "outline"}
+                            size="sm"
+                            onClick={togglePdfView}
+                            className="hidden md:flex gap-2"
+                        >
+                            <LayoutPanelLeft className="h-4 w-4" />
+                            {showPdf ? 'Hide Document' : 'Show Document'}
+                        </Button>
+
+                        <div className="h-6 w-px bg-border mx-1 hidden md:block"></div>
+
+                        <GlowButton variant="ghost" size="sm" className="hidden sm:flex">
+                            <Share2 className="h-4 w-4 mr-2" />
+                            Share
+                        </GlowButton>
+                        <GlowButton variant="glow" size="sm">
+                            <Download className="h-4 w-4 mr-2" />
+                            Report
+                        </GlowButton>
+                    </div>
+                </div>
+            </header>
+
+            {/* Main Content - Resizable Split View */}
+            <div className="flex-1 overflow-hidden relative">
+                {showPdf ? (
+                    <PanelGroup direction="horizontal" className="h-full">
+                        {/* Left Panel: Document Viewer */}
+                        <Panel defaultSize={40} minSize={20} className="bg-muted/30 relative border-r border-border">
+                            <div className="h-full overflow-hidden flex flex-col">
+                                <div className="p-2 bg-background border-b border-border text-xs font-medium text-center text-muted-foreground uppercase tracking-wider flex justify-between items-center px-4">
+                                    <span>Original Document</span>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={togglePdfView}>
+                                        <Minimize2 className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                                <div className="flex-1 relative bg-slate-100 dark:bg-slate-900">
+                                    <PDFViewer
+                                        fileUrl={document?.url}
+                                        highlightedPage={highlightedPage}
+                                        className="h-full w-full border-none rounded-none shadow-none"
+                                    />
+                                </div>
+                            </div>
+                        </Panel>
+
+                        <PanelResizeHandle className="w-1.5 bg-border hover:bg-primary/50 transition-colors cursor-col-resize z-20 flex items-center justify-center">
+                            <div className="h-8 w-1 rounded-full bg-muted-foreground/30"></div>
+                        </PanelResizeHandle>
+
+                        {/* Right Panel: Analysis */}
+                        <Panel minSize={30} className="bg-background relative">
+                            <AnalysisContent
+                                analysis={analysis}
+                                activeTab={activeTab}
+                                setActiveTab={setActiveTab}
+                                handleClauseClick={handleClauseClick}
+                                selectedRole={selectedRole}
+                                setSelectedRole={setSelectedRole}
+                            />
+                        </Panel>
+                    </PanelGroup>
+                ) : (
+                    <div className="h-full overflow-auto bg-slate-50 dark:bg-slate-950">
+                        <div className="max-w-5xl mx-auto p-6 transition-all duration-300">
+                            <div className="flex justify-end mb-4">
+                                <Button variant="outline" onClick={togglePdfView} className="gap-2 bg-white dark:bg-slate-900">
+                                    <LayoutPanelLeft className="h-4 w-4" /> Open Document Viewer
+                                </Button>
+                            </div>
+                            <AnalysisContent
+                                analysis={analysis}
+                                activeTab={activeTab}
+                                setActiveTab={setActiveTab}
+                                handleClauseClick={handleClauseClick}
+                                selectedRole={selectedRole}
+                                setSelectedRole={setSelectedRole}
+                                isFullWidth={true}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick, selectedRole, setSelectedRole, isFullWidth = false }) {
     const getRiskBadgeVariant = (level) => {
         switch (level) {
             case 'high': return 'destructive';
@@ -133,487 +205,272 @@ export default function AnalysisView({ analysis, document, error }) {
         }
     };
 
-    const getImportanceBadge = (importance) => {
-        switch (importance) {
-            case 'critical': return 'destructive';
-            case 'important': return 'warning';
-            default: return 'secondary';
-        }
-    };
-
-    const getPriorityBadge = (priority) => {
-        switch (priority) {
-            case 'high': return 'destructive';
-            case 'medium': return 'warning';
-            case 'low': return 'secondary';
-            default: return 'secondary';
-        }
-    };
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
-            <div className="max-w-7xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/dashboard">
-                            <Button variant="outline" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                                {analysis.document.title}
-                            </h1>
-                            <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="outline" className="text-xs">
-                                    <FileText className="h-3 w-3 mr-1" />
-                                    {analysis.document.file_name}
-                                </Badge>
-                                <Badge variant={analysis.document.status === 'completed' ? 'success' : 'warning'} className="text-xs">
-                                    {analysis.document.status === 'completed' ? 'Completed' : 'Processing'}
-                                </Badge>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                            <Share2 className="h-4 w-4 mr-2" />
-                            Share
-                        </Button>
-                        <Button variant="outline" size="sm">
-                            <Download className="h-4 w-4 mr-2" />
-                            Export PDF
-                        </Button>
-                    </div>
+        <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-6 bg-slate-50 dark:bg-slate-950/50">
+
+            {/* Risk Alerts */}
+            {analysis.riskAlerts && analysis.riskAlerts.length > 0 && (
+                <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+                    <RiskAlertList alerts={analysis.riskAlerts} />
+                </div>
+            )}
+
+            {/* Role Switcher */}
+            {analysis.role_analysis && (
+                <RoleSwitcher
+                    roleAnalysis={analysis.role_analysis}
+                    onRoleChange={setSelectedRole}
+                />
+            )}
+
+            {/* Top Stats Grid */}
+            <div className={`grid grid-cols-1 ${isFullWidth ? 'lg:grid-cols-3' : 'xl:grid-cols-2'} gap-6`}>
+                <div className={`${isFullWidth ? 'lg:col-span-2' : ''} space-y-6`}>
+                    {/* Contract Type */}
+                    {analysis.contract_type && (
+                        <ContractTypeDisplay contractType={analysis.contract_type} />
+                    )}
+
+                    {/* Complexity */}
+                    {analysis.complexity_score && (
+                        <GlassCard className="bg-white/50 dark:bg-slate-900/50 border-border/50 shadow-sm hover:shadow-glow transition-all">
+                            <GlassCardHeader className="pb-2">
+                                <GlassCardTitle className="text-base font-semibold">Complexity Score</GlassCardTitle>
+                            </GlassCardHeader>
+                            <GlassCardContent>
+                                <ComplexityGauge score={analysis.complexity_score} />
+                            </GlassCardContent>
+                        </GlassCard>
+                    )}
                 </div>
 
-                {/* Analysis Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
-                        <CardContent className="p-6 text-center">
-                            <div className="flex items-center justify-center mb-4">
-                                <div className={`p-3 rounded-full ${
-                                    analysis.overall_risk === 'high' ? 'bg-red-100' :
-                                    analysis.overall_risk === 'medium' ? 'bg-yellow-100' : 'bg-green-100'
-                                }`}>
-                                    <Shield className={`h-8 w-8 ${
-                                        analysis.overall_risk === 'high' ? 'text-red-600' :
-                                        analysis.overall_risk === 'medium' ? 'text-yellow-600' : 'text-green-600'
-                                    }`} />
-                                </div>
-                            </div>
-                            <h3 className="font-semibold text-lg mb-2">Overall Risk</h3>
-                            <Badge variant={getRiskBadgeVariant(analysis.overall_risk)} className="text-sm px-3 py-1">
-                                {analysis.overall_risk.toUpperCase()}
-                            </Badge>
-                            <p className="text-sm text-slate-600 mt-2">
-                                {analysis.overall_risk === 'high' ? 'High risk detected - immediate attention required' :
-                                 analysis.overall_risk === 'medium' ? 'Moderate risk - review recommended' : 
-                                 'Low risk - generally safe terms'}
-                            </p>
-                        </CardContent>
-                    </Card>
+                {/* Risk Meter */}
+                <GlassCard className="flex flex-col items-center justify-center p-6 bg-white/50 dark:bg-slate-900/50 border-border/50 shadow-glow transition-all">
+                    <h3 className="font-semibold mb-4 text-center">Overall Risk Score</h3>
+                    <RiskMeter score={analysis.risk_score || 0} size="lg" />
+                    <p className="mt-4 text-sm text-center text-muted-foreground">
+                        {(analysis.risk_score || 0) > 70 ? 'Requires careful review' : 'Standard terms detected'}
+                    </p>
+                </GlassCard>
+            </div>
 
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50">
-                        <CardContent className="p-6 text-center">
-                            <div className="flex items-center justify-center mb-4">
-                                <div className="p-3 rounded-full bg-blue-100">
-                                    <BarChart3 className="h-8 w-8 text-blue-600" />
-                                </div>
-                            </div>
-                            <h3 className="font-semibold text-lg mb-2">Risk Score</h3>
-                            <div className="text-3xl font-bold text-blue-600 mb-2">
-                                {analysis.risk_score}/100
-                            </div>
-                            <Progress value={analysis.risk_score} className="h-2 mb-2" />
-                            <p className="text-sm text-slate-600">
-                                Based on {Object.keys(riskMetrics).length} risk categories analyzed
-                            </p>
-                        </CardContent>
-                    </Card>
+            {/* Summary */}
+            <GlassCard className="bg-white/50 dark:bg-slate-900/50 border-border/50 shadow-sm hover:shadow-glow transition-all">
+                <GlassCardHeader>
+                    <GlassCardTitle className="flex items-center gap-2 text-lg font-semibold">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        Executive Summary
+                    </GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent>
+                    <p className="leading-relaxed text-slate-600 dark:text-slate-300">
+                        {analysis.summary || 'No summary available'}
+                    </p>
+                </GlassCardContent>
+            </GlassCard>
 
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50">
-                        <CardContent className="p-6 text-center">
-                            <div className="flex items-center justify-center mb-4">
-                                <div className="p-3 rounded-full bg-purple-100">
-                                    <Eye className="h-8 w-8 text-purple-600" />
-                                </div>
-                            </div>
-                            <h3 className="font-semibold text-lg mb-2">Clauses Found</h3>
-                            <div className="text-3xl font-bold text-purple-600 mb-2">
-                                {analysis.clauses?.length || 0}
-                            </div>
-                            <p className="text-sm text-slate-600">
-                                Risky clauses identified
-                            </p>
-                        </CardContent>
-                    </Card>
+            {/* Financial Exposure */}
+            {analysis.financial_exposure && (
+                <FinancialExposureCard financialExposure={analysis.financial_exposure} />
+            )}
 
-                    <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-red-50">
-                        <CardContent className="p-6 text-center">
-                            <div className="flex items-center justify-center mb-4">
-                                <div className="p-3 rounded-full bg-orange-100">
-                                    <Target className="h-8 w-8 text-orange-600" />
-                                </div>
-                            </div>
-                            <h3 className="font-semibold text-lg mb-2">Obligations</h3>
-                            <div className="text-3xl font-bold text-orange-600 mb-2">
-                                {analysis.obligations?.length || 0}
-                            </div>
-                            <p className="text-sm text-slate-600">
-                                Key obligations identified
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Risk Overview */}
-                <Card className="border-0 shadow-lg">
+            {/* Charts Section */}
+            <div className={`grid grid-cols-1 ${isFullWidth ? 'md:grid-cols-2' : 'xl:grid-cols-2'} gap-6`}>
+                <Card className="bg-white dark:bg-slate-900 border-border shadow-sm">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <BarChart3 className="h-5 w-5 text-blue-600" />
-                            Risk Analysis Overview
+                        <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                            <BarChart3 className="h-4 w-4" /> Risk Distribution
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Risk Score Gauge */}
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Risk Score Breakdown</h3>
-                                <div className="relative h-32 w-32 mx-auto">
-                                    <svg className="transform -rotate-90 w-32 h-32">
-                                        <circle
-                                            cx="64"
-                                            cy="64"
-                                            r="56"
-                                            stroke="currentColor"
-                                            strokeWidth="8"
-                                            fill="none"
-                                            className="text-slate-200"
-                                        />
-                                        <circle
-                                            cx="64"
-                                            cy="64"
-                                            r="56"
-                                            stroke="currentColor"
-                                            strokeWidth="8"
-                                            fill="none"
-                                            strokeDasharray={`${2 * Math.PI * 56}`}
-                                            strokeDashoffset={`${2 * Math.PI * 56} * (1 - analysis.risk_score / 100)`}
-                                            className={`${
-                                                analysis.risk_score >= 70 ? 'text-red-500' :
-                                                analysis.risk_score >= 40 ? 'text-yellow-500' : 'text-green-500'
-                                            }`}
-                                            transform="rotate(-90 64 64)"
-                                        />
-                                    </svg>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-2xl font-bold">
-                                            {analysis.risk_score}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="text-center space-y-2">
-                                    <Badge variant={getRiskBadgeVariant(analysis.overall_risk)} className="mb-2">
-                                        {analysis.overall_risk.toUpperCase()} RISK
-                                    </Badge>
-                                    <p className="text-sm text-slate-600">
-                                        {analysis.risk_score >= 70 ? 'High Risk - Immediate Action Required' :
-                                         analysis.risk_score >= 40 ? 'Medium Risk - Review Recommended' : 
-                                         'Low Risk - Generally Favorable'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Risk Categories Chart */}
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Risk by Category</h3>
-                                <div className="space-y-3">
-                                    {Object.entries(riskMetrics).map(([category, score]) => (
-                                        <div key={category} className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-medium capitalize text-slate-700">
-                                                    {category.replace(/_/g, ' ')}
-                                                </span>
-                                                <span className="text-xs font-medium text-slate-500">{score}%</span>
-                                            </div>
-                                            <Progress value={score} className="h-2" />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Summary */}
-                        <div>
-                            <h3 className="font-semibold text-lg mb-3">Executive Summary</h3>
-                            <div className="bg-slate-50 p-4 rounded-lg">
-                                <p className="text-slate-700 leading-relaxed">
-                                    {analysis.summary}
-                                </p>
-                            </div>
-                        </div>
+                    <CardContent>
+                        <RiskDistributionChart riskMetrics={analysis.riskMetrics || []} />
                     </CardContent>
                 </Card>
 
-                {/* Main Content Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="overview" className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4" />
-                            Risky Clauses ({analysis.clauses?.length || 0})
-                        </TabsTrigger>
-                        <TabsTrigger value="obligations" className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Obligations ({analysis.obligations?.length || 0})
-                        </TabsTrigger>
-                        <TabsTrigger value="negotiation" className="flex items-center gap-2">
-                            <Scale className="h-4 w-4" />
-                            Negotiation ({analysis.negotiationPoints?.length || 0})
-                        </TabsTrigger>
-                    </TabsList>
-
-                    {/* Risky Clauses Tab */}
-                    <TabsContent value="overview" className="space-y-4 mt-6">
-                        {analysis.clauses?.length > 0 ? (
-                            analysis.clauses.map((clause) => (
-                                <Card
-                                    key={clause.id}
-                                    className={`border-l-4 ${clause.risk_level === 'high' ? 'border-l-red-500 bg-red-50' : 
-                                                   clause.risk_level === 'medium' ? 'border-l-yellow-500 bg-yellow-50' : 
-                                                   'border-l-green-500 bg-green-50'}`}
-                                >
-                                    <CardHeader>
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <CardTitle className="text-lg">{clause.title}</CardTitle>
-                                                    <Badge variant={getRiskBadgeVariant(clause.risk_level)} className="ml-2">
-                                                        {clause.risk_level.toUpperCase()}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                    <span className="flex items-center gap-1">
-                                                        {clause.category === 'liability' && <Shield className="h-4 w-4 text-red-500" />}
-                                                        {clause.category === 'intellectual_property' && <Lock className="h-4 w-4 text-orange-500" />}
-                                                        {clause.category === 'termination' && <XCircle className="h-4 w-4 text-yellow-500" />}
-                                                        {clause.category === 'payment' && <DollarSign className="h-4 w-4 text-green-500" />}
-                                                        {clause.category?.replace(/_/g, ' ') || 'General'}
-                                                    </span>
-                                                    {clause.page && (
-                                                        <Badge variant="outline" className="text-xs">
-                                                            Page {clause.page}
-                                                        </Badge>
-                                                    )}
-                                                    {clause.section && (
-                                                        <Badge variant="outline" className="text-xs">
-                                                            Section {clause.section}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div>
-                                            <h4 className="font-medium text-slate-900 mb-2">Clause Text</h4>
-                                            <div className="bg-slate-100 p-3 rounded-md text-sm text-slate-700 mb-4">
-                                                "{clause.clause_text}"
-                                            </div>
-                                        </div>
-                                        
-                                        <div>
-                                            <h4 className="font-medium text-slate-900 mb-2">Why This Matters</h4>
-                                            <p className="text-slate-700 mb-4">{clause.explanation}</p>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="font-medium text-slate-900 mb-2">Potential Impact</h4>
-                                            <p className="text-slate-700 mb-4">{clause.impact}</p>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="font-medium text-slate-900 mb-2">Recommendations</h4>
-                                            <div className="space-y-2">
-                                                {clause.suggestions?.map((suggestion, index) => (
-                                                    <div key={index} className="flex items-start gap-2">
-                                                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                                                        <span className="text-sm text-slate-700">{suggestion}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))
-                        ) : (
-                            <Card className="border-0 shadow-lg">
-                                <CardContent className="text-center py-12">
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <CheckCircle2 className="h-12 w-12 text-green-500" />
-                                        <h3 className="text-lg font-semibold text-slate-900">No Risky Clauses Found</h3>
-                                        <p className="text-slate-600">
-                                            Great! Your contract appears to have standard terms with minimal risks.
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
-
-                    {/* Obligations Tab */}
-                    <TabsContent value="obligations" className="space-y-4 mt-6">
-                        {analysis.obligations?.length > 0 ? (
-                            analysis.obligations.map((obligation) => (
-                                <Card key={obligation.id} className="border-0 shadow-lg">
-                                    <CardHeader>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <CardTitle className="text-lg">{obligation.title}</CardTitle>
-                                                <Badge variant={getImportanceBadge(obligation.importance)}>
-                                                    {obligation.importance.toUpperCase()}
-                                                </Badge>
-                                            </div>
-                                            <Badge variant="outline" className="text-xs">
-                                                {obligation.category?.replace(/_/g, ' ') || 'General'}
-                                            </Badge>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <h4 className="font-medium text-slate-900 mb-2">Deadline</h4>
-                                                <div className="flex items-center gap-2">
-                                                    <Clock className="h-4 w-4 text-slate-500" />
-                                                    <span className="text-sm text-slate-700">{obligation.deadline}</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h4 className="font-medium text-slate-900 mb-2">Importance</h4>
-                                                <div className="flex items-center gap-2">
-                                                    <AlertCircle className="h-4 w-4 text-slate-500" />
-                                                    <span className="text-sm text-slate-700">{obligation.importance}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="font-medium text-slate-900 mb-2">What You Need to Do</h4>
-                                            <p className="text-slate-700 mb-4">{obligation.description}</p>
-                                        </div>
-
-                                        <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-                                            <h4 className="font-medium text-red-900 mb-2">Consequences if Not Met</h4>
-                                            <p className="text-red-800">{obligation.consequences}</p>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))
-                        ) : (
-                            <Card className="border-0 shadow-lg">
-                                <CardContent className="text-center py-12">
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <CheckCircle2 className="h-12 w-12 text-blue-500" />
-                                        <h3 className="text-lg font-semibold text-slate-900">No Specific Obligations Found</h3>
-                                        <p className="text-slate-600">
-                                            Your contract doesn't appear to have specific obligations that require tracking.
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
-
-                    {/* Negotiation Points Tab */}
-                    <TabsContent value="negotiation" className="space-y-4 mt-6">
-                        {analysis.negotiationPoints?.length > 0 ? (
-                            <>
-                                <Alert className="border-blue-200 bg-blue-50">
-                                    <Scale className="h-4 w-4 text-blue-600" />
-                                    <AlertTitle className="text-blue-900">Negotiation Strategy</AlertTitle>
-                                    <AlertDescription className="text-blue-800">
-                                        These points are prioritized by potential impact. Start with high-priority items.
-                                    </AlertDescription>
-                                </Alert>
-
-                                {analysis.negotiationPoints.map((point) => (
-                                    <Card key={point.id} className="border-0 shadow-lg">
-                                        <CardHeader>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <CardTitle className="text-lg">{point.title}</CardTitle>
-                                                    <Badge variant={getPriorityBadge(point.priority)}>
-                                                        {point.priority.toUpperCase()}
-                                                    </Badge>
-                                                </div>
-                                                <Badge variant="outline" className="text-xs">
-                                                    {point.category?.replace(/_/g, ' ') || 'General'}
-                                                </Badge>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                <div>
-                                                    <h4 className="font-medium text-slate-900 mb-2">Current Terms</h4>
-                                                    <div className="bg-red-50 border border-red-200 p-3 rounded-md">
-                                                        <p className="text-sm text-red-800">{point.currentTerms}</p>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-medium text-slate-900 mb-2">Suggested Improvement</h4>
-                                                    <div className="bg-green-50 border border-green-200 p-3 rounded-md">
-                                                        <p className="text-sm text-green-800">{point.proposedTerms}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <h4 className="font-medium text-slate-900 mb-2">Why This Matters</h4>
-                                                <p className="text-slate-700 mb-4">{point.rationale}</p>
-                                            </div>
-
-                                            <div>
-                                                <h4 className="font-medium text-slate-900 mb-2">Talking Points</h4>
-                                                <div className="space-y-2">
-                                                    {point.talkingPoints?.map((talkingPoint, index) => (
-                                                        <div key={index} className="flex items-start gap-2">
-                                                            <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                                                            <span className="text-sm text-slate-700">{talkingPoint}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 mt-4">
-                                                <span className="text-sm text-slate-500">Priority Score:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <Progress value={point.priorityScore} className="h-2 w-20" />
-                                                    <span className="text-sm font-medium text-slate-700">{point.priorityScore}/100</span>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </>
-                        ) : (
-                            <Card className="border-0 shadow-lg">
-                                <CardContent className="text-center py-12">
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <Award className="h-12 w-12 text-green-500" />
-                                        <h3 className="text-lg font-semibold text-slate-900">No Negotiation Points</h3>
-                                        <p className="text-slate-600">
-                                            Your contract terms appear to be fair and reasonable.
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
-                </Tabs>
+                <Card className="bg-white dark:bg-slate-900 border-border shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                            <Shield className="h-4 w-4" /> Category Breakdown
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {analysis.riskMetrics?.map((metric) => (
+                            <LinearRiskMeter
+                                key={metric.category}
+                                score={metric.score}
+                                category={metric.category}
+                            />
+                        ))}
+                    </CardContent>
+                </Card>
             </div>
+
+            {/* Detailed Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <TabsList className="w-full justify-start overflow-x-auto bg-white dark:bg-slate-900 p-1 border border-border rounded-lg shadow-sm">
+                    <TabsTrigger value="overview" className="data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800">Overview</TabsTrigger>
+                    <TabsTrigger value="clauses" className="data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800">
+                        Clauses <Badge variant="secondary" className="ml-2 text-[10px]">{analysis.clauses?.length}</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="obligations" className="data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800">
+                        Obligations <Badge variant="secondary" className="ml-2 text-[10px]">{analysis.obligations?.length}</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="negotiation" className="data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800">
+                        Negotiation <Badge variant="secondary" className="ml-2 text-[10px]">{analysis.negotiationPoints?.length}</Badge>
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <QuickStatCard
+                            icon={<AlertTriangle className="h-5 w-5 text-red-500" />}
+                            label="High Risk Clauses"
+                            value={analysis.clauses?.filter(c => (c && c.riskLevel === 'high')).length || 0}
+                            onClick={() => setActiveTab('clauses')}
+                        />
+                        <QuickStatCard
+                            icon={<Clock className="h-5 w-5 text-blue-500" />}
+                            label="Key Obligations"
+                            value={analysis.obligations?.length || 0}
+                            onClick={() => setActiveTab('obligations')}
+                        />
+                        <QuickStatCard
+                            icon={<MessageSquare className="h-5 w-5 text-green-500" />}
+                            label="Negotiation Points"
+                            value={analysis.negotiationPoints?.length || 0}
+                            onClick={() => setActiveTab('negotiation')}
+                        />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="clauses" className="space-y-4 mt-4">
+                    {analysis.clauses?.map((clause, index) => (
+                        <Card
+                            key={index}
+                            className="bg-white dark:bg-slate-900 border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                            onClick={() => handleClauseClick(clause.page)}
+                        >
+                            <CardHeader className="pb-2">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <CardTitle className="text-base font-semibold group-hover:text-blue-600 transition-colors">
+                                            {clause.title}
+                                        </CardTitle>
+                                        <CardDescription className="flex items-center gap-2 mt-1">
+                                            <span>Page {clause.page}</span>
+                                            <span>•</span>
+                                            <span>{clause.category}</span>
+                                        </CardDescription>
+                                    </div>
+                                    <Badge variant={getRiskBadgeVariant(clause.riskLevel || 'medium')} className="capitalize">
+                                        {(clause.riskLevel || 'medium')}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="p-3 rounded-md bg-slate-50 dark:bg-slate-800 text-sm font-mono text-slate-600 dark:text-slate-400 mb-3 border border-border">
+                                    "{(clause.clauseText || '').substring(0, 150)}{(clause.clauseText || '').length > 150 ? '...' : ''}"
+                                </div>
+                                <p className="text-sm mb-2 text-slate-600 dark:text-slate-300">{clause.explanation}</p>
+                                {clause.financialImpact && (
+                                    <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-950/20 p-2 rounded border border-red-100 dark:border-red-900/30">
+                                        <DollarSign className="h-4 w-4 mt-0.5" />
+                                        <span>{clause.financialImpact}</span>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    ))}
+                </TabsContent>
+
+                <TabsContent value="obligations" className="space-y-4 mt-4">
+                    {analysis.obligations?.map((msg, idx) => (
+                        <Card key={idx} className="bg-white dark:bg-slate-900 border-border shadow-sm hover:shadow-md transition-all">
+                            <CardHeader>
+                                <div className="flex justify-between">
+                                    <CardTitle className="text-base font-semibold">{msg.title}</CardTitle>
+                                    <Badge variant="outline">{msg.importance}</Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">{msg.description}</p>
+                                <div className="flex items-center gap-2 text-xs font-semibold text-blue-600">
+                                    <Clock className="h-3 w-3" /> Due: {msg.deadline}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </TabsContent>
+
+                <TabsContent value="negotiation" className="space-y-4 mt-4">
+                    {analysis.negotiationPoints?.map((point, idx) => (
+                        <Card key={idx} className="bg-white dark:bg-slate-900 border-border shadow-sm">
+                            <CardHeader>
+                                <div className="flex justify-between">
+                                    <CardTitle className="text-base font-semibold">{point.title}</CardTitle>
+                                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800">
+                                        Score: {point.priorityScore}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded border border-red-100 dark:border-red-900/30">
+                                        <span className="text-xs font-bold text-red-600 uppercase mb-1 block">Current</span>
+                                        {point.currentTerms}
+                                    </div>
+                                    <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded border border-green-100 dark:border-green-900/30">
+                                        <span className="text-xs font-bold text-green-600 uppercase mb-1 block">Proposed</span>
+                                        {point.proposedTerms}
+                                    </div>
+                                </div>
+                                <p className="text-sm text-slate-500 italic">{point.rationale}</p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}
+
+function QuickStatCard({ icon, label, value, onClick }) {
+    return (
+        <div
+            onClick={onClick}
+            className="flex items-center p-4 rounded-xl border border-border bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer hover:shadow-md active:scale-[0.99]"
+        >
+            <div className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mr-4">
+                {icon}
+            </div>
+            <div>
+                <div className="text-2xl font-bold text-foreground">{value}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
+            </div>
+        </div>
+    );
+}
+
+function ErrorView({ error, document }) {
+    return (
+        <div className="min-h-screen p-8 flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+            <Card className="max-w-lg w-full p-8 text-center bg-white dark:bg-slate-900 border-border shadow-lg">
+                <div className="flex justify-center mb-6">
+                    <div className="p-4 rounded-full bg-red-100 text-red-600">
+                        <XCircle className="h-10 w-10" />
+                    </div>
+                </div>
+                <h1 className="text-2xl font-bold mb-2">Analysis Failed</h1>
+                <p className="text-muted-foreground mb-6">
+                    {error || 'We could not process this document. Please try again.'}
+                </p>
+                <div className="flex justify-center gap-4">
+                    <Link href="/dashboard">
+                        <Button variant="outline">Back to Dashboard</Button>
+                    </Link>
+                    <Button onClick={() => window.location.reload()}>Try Again</Button>
+                </div>
+            </Card>
         </div>
     );
 }
