@@ -70,7 +70,11 @@ export async function createAnalysis(documentId, analysisData) {
                     summary: analysisData.summary || '',
                     contract_type: analysisData.contractType || null,
                     financial_exposure: analysisData.financialExposure || {},
-                    role_analysis: analysisData.roleAnalysis || {},
+                    role_analysis: {
+                        ...(analysisData.roleAnalysis || {}),
+                        primaryRoleAnalysis: analysisData.primaryRoleAnalysis,
+                        secondaryRoleAnalysis: analysisData.secondaryRoleAnalysis
+                    },
                     risk_alerts: analysisData.riskAlerts || [],
                     risk_metrics: analysisData.riskMetrics || [],
                     clauses: analysisData.clauses || [],

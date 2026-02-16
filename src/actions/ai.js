@@ -110,17 +110,51 @@ ${contractText.substring(0, 50000)}
 Provide your analysis in this EXACT JSON structure:
 {
   "contractType": "employment" | "rental" | "service" | "nda" | "partnership" | "freelance" | "sales" | "other",
-  "overallRisk": "low" | "medium" | "high",
-  "riskScore": 0-100,
-  "complexityScore": 0-100,
-  "summary": "brief summary",
-  "financialExposure": {
-    "estimatedCosts": "estimated costs or fees mentioned",
-    "penalties": "potential penalties or fines",
-    "liabilityCaps": "liability limitations or caps",
-    "bestCase": "best case financial scenario",
-    "worstCase": "worst case financial scenario"
+  
+  "primaryRoleAnalysis": {
+    "overallRisk": "low" | "medium" | "high",
+    "riskScore": 0-100,
+    "complexityScore": 0-100,
+    "summary": "brief summary from primary role's perspective",
+    "financialExposure": {
+      "estimatedCosts": "estimated costs or fees from primary role's view",
+      "penalties": "potential penalties or fines for primary role",
+      "liabilityCaps": "liability limitations or caps affecting primary role",
+      "bestCase": "best case financial scenario for primary role",
+      "worstCase": "worst case financial scenario for primary role"
+    },
+    "riskMetrics": [
+      { "category": "liability", "score": 0-100 },
+      { "category": "payment", "score": 0-100 },
+      { "category": "intellectual_property", "score": 0-100 },
+      { "category": "termination", "score": 0-100 },
+      { "category": "confidentiality", "score": 0-100 },
+      { "category": "indemnification", "score": 0-100 }
+    ]
   },
+  
+  "secondaryRoleAnalysis": {
+    "overallRisk": "low" | "medium" | "high",
+    "riskScore": 0-100,
+    "complexityScore": 0-100,
+    "summary": "brief summary from secondary role's perspective",
+    "financialExposure": {
+      "estimatedCosts": "estimated costs or fees from secondary role's view",
+      "penalties": "potential penalties or fines for secondary role",
+      "liabilityCaps": "liability limitations or caps affecting secondary role",
+      "bestCase": "best case financial scenario for secondary role",
+      "worstCase": "worst case financial scenario for secondary role"
+    },
+    "riskMetrics": [
+      { "category": "liability", "score": 0-100 },
+      { "category": "payment", "score": 0-100 },
+      { "category": "intellectual_property", "score": 0-100 },
+      { "category": "termination", "score": 0-100 },
+      { "category": "confidentiality", "score": 0-100 },
+      { "category": "indemnification", "score": 0-100 }
+    ]
+  },
+  
   "roleAnalysis": {
     "primaryRole": "most descriptive role name for the user (e.g., 'Service Provider', 'Employee', 'Tenant')",
     "secondaryRole": "most descriptive role name for the other party (e.g., 'Consumer', 'Employer', 'Landlord')",
@@ -135,14 +169,6 @@ Provide your analysis in this EXACT JSON structure:
       "keyConsiderations": ["vital consideration 1", "vital consideration 2"]
     }
   },
-  "riskMetrics": [
-    { "category": "liability", "score": 0-100 },
-    { "category": "payment", "score": 0-100 },
-    { "category": "intellectual_property", "score": 0-100 },
-    { "category": "termination", "score": 0-100 },
-    { "category": "confidentiality", "score": 0-100 },
-    { "category": "indemnification", "score": 0-100 }
-  ],
   "clauses": [
     {
       "title": "clause title",
@@ -153,17 +179,19 @@ Provide your analysis in this EXACT JSON structure:
       "explanation": "why this is risky in plain English",
       "impact": "potential impact",
       "suggestions": ["suggestion 1", "suggestion 2"],
-      "financialImpact": "specific financial impact if applicable"
+      "financialImpact": "specific financial impact if applicable",
+      "roleSpecific": "primary" | "secondary" | "both"
     }
   ],
   "obligations": [
     {
       "title": "obligation title",
       "category": "reporting" | "payment" | "delivery" | "confidentiality" | "communication",
-      "importance": "critical" | "important" | "normal",
+      "importance": "critical" | "important" | "normal" | "high" | "medium" | "low",
       "deadline": "deadline description",
       "description": "what you need to do",
-      "consequences": "what happens if you don't comply"
+      "consequences": "what happens if you don't comply",
+      "roleSpecific": "primary" | "secondary" | "both"
     }
   ],
   "negotiationPoints": [
@@ -174,7 +202,8 @@ Provide your analysis in this EXACT JSON structure:
       "proposedTerms": "better alternative terms",
       "rationale": "why this change matters",
       "talkingPoints": ["point 1", "point 2"],
-      "priorityScore": 0-100
+      "priorityScore": 0-100,
+      "roleSpecific": "primary" | "secondary" | "both"
     }
   ],
   "riskAlerts": [
@@ -191,7 +220,15 @@ Important:
 - Detect the contract type accurately.
 - Calculate complexity score based on document length, legal jargon density, and number of complex clauses.
 - Provide detailed financial exposure analysis with specific amounts when mentioned.
-- Generate role-based analysis from both perspectives (e.g., employee vs employer).
+- Generate SEPARATE complete analyses for both roles (primaryRoleAnalysis and secondaryRoleAnalysis):
+  * Each should have its own riskScore, complexityScore, summary, financialExposure, and riskMetrics
+  * Primary role analysis should focus on risks/benefits from the first party's perspective
+  * Secondary role analysis should focus on risks/benefits from the second party's perspective
+  * Risk scores and metrics should differ based on which party faces more risk in each category
+- For each clause, obligation, and negotiation point, add a "roleSpecific" field:
+  * "primary": primarily affects the primary role (first party in the contract)
+  * "secondary": primarily affects the secondary role (second party in the contract)
+  * "both": affects both parties equally
 - Create risk alerts for critical issues like "This clause can cost you money" or "Unlimited liability detected".
 - Explain everything in plain, simple English.
 - Return ONLY valid JSON. No preamble, no postscript.`;

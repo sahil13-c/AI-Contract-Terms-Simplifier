@@ -221,6 +221,66 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
         }
     };
 
+    // Filter functions based on selected role
+    const getFilteredClauses = () => {
+        if (!selectedRole || selectedRole === 'primary') {
+            return analysis.clauses?.filter(c =>
+                !c.roleSpecific || c.roleSpecific === 'primary' || c.roleSpecific === 'both'
+            ) || [];
+        }
+        return analysis.clauses?.filter(c =>
+            !c.roleSpecific || c.roleSpecific === 'secondary' || c.roleSpecific === 'both'
+        ) || [];
+    };
+
+    const getFilteredObligations = () => {
+        if (!selectedRole || selectedRole === 'primary') {
+            return analysis.obligations?.filter(o =>
+                !o.roleSpecific || o.roleSpecific === 'primary' || o.roleSpecific === 'both'
+            ) || [];
+        }
+        return analysis.obligations?.filter(o =>
+            !o.roleSpecific || o.roleSpecific === 'secondary' || o.roleSpecific === 'both'
+        ) || [];
+    };
+
+    const getFilteredNegotiations = () => {
+        if (!selectedRole || selectedRole === 'primary') {
+            return analysis.negotiationPoints?.filter(n =>
+                !n.roleSpecific || n.roleSpecific === 'primary' || n.roleSpecific === 'both'
+            ) || [];
+        }
+        return analysis.negotiationPoints?.filter(n =>
+            !n.roleSpecific || n.roleSpecific === 'secondary' || n.roleSpecific === 'both'
+        ) || [];
+    };
+
+    // Get active analysis based on selected role
+    const getActiveAnalysis = () => {
+        // Check both top-level and nested roleAnalysis for the new dual structure
+        const primary = analysis.primaryRoleAnalysis || analysis.roleAnalysis?.primaryRoleAnalysis;
+        const secondary = analysis.secondaryRoleAnalysis || analysis.roleAnalysis?.secondaryRoleAnalysis;
+
+        if (primary && secondary) {
+            return selectedRole === 'secondary' ? secondary : primary;
+        }
+
+        // Fallback to old structure for backward compatibility
+        return {
+            overallRisk: analysis.overallRisk || analysis.overall_risk,
+            riskScore: analysis.riskScore || analysis.risk_score,
+            complexityScore: analysis.complexityScore || analysis.complexity_score,
+            summary: analysis.summary,
+            financialExposure: analysis.financialExposure || analysis.financial_exposure,
+            riskMetrics: analysis.riskMetrics || []
+        };
+    };
+
+    const activeAnalysis = getActiveAnalysis();
+    const filteredClauses = getFilteredClauses();
+    const filteredObligations = getFilteredObligations();
+    const filteredNegotiations = getFilteredNegotiations();
+
     return (
         <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-6 bg-slate-50 dark:bg-slate-950/50">
 
@@ -248,13 +308,13 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                     )}
 
                     {/* Complexity */}
-                    {analysis.complexity_score && (
+                    {activeAnalysis.complexityScore && (
                         <GlassCard className="bg-white/50 dark:bg-slate-900/50 border-border/50 shadow-sm hover:shadow-glow transition-all">
                             <GlassCardHeader className="pb-2">
                                 <GlassCardTitle className="text-base font-semibold">Complexity Score</GlassCardTitle>
                             </GlassCardHeader>
                             <GlassCardContent>
-                                <ComplexityGauge score={analysis.complexity_score} />
+                                <ComplexityGauge score={activeAnalysis.complexityScore} />
                             </GlassCardContent>
                         </GlassCard>
                     )}
@@ -263,9 +323,9 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                 {/* Risk Meter */}
                 <GlassCard className="flex flex-col items-center justify-center p-6 bg-white/50 dark:bg-slate-900/50 border-border/50 shadow-glow transition-all">
                     <h3 className="font-semibold mb-4 text-center">Overall Risk Score</h3>
-                    <RiskMeter score={analysis.risk_score || 0} size="lg" />
+                    <RiskMeter score={activeAnalysis.riskScore || 0} size="lg" />
                     <p className="mt-4 text-sm text-center text-muted-foreground">
-                        {(analysis.risk_score || 0) > 70 ? 'Requires careful review' : 'Standard terms detected'}
+                        {(activeAnalysis.riskScore || 0) > 70 ? 'Requires careful review' : 'Standard terms detected'}
                     </p>
                 </GlassCard>
             </div>
@@ -280,14 +340,14 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                 </GlassCardHeader>
                 <GlassCardContent>
                     <p className="leading-relaxed text-slate-600 dark:text-slate-300">
-                        {analysis.summary || 'No summary available'}
+                        {activeAnalysis.summary || 'No summary available'}
                     </p>
                 </GlassCardContent>
             </GlassCard>
 
             {/* Financial Exposure */}
-            {analysis.financial_exposure && (
-                <FinancialExposureCard financialExposure={analysis.financial_exposure} />
+            {activeAnalysis.financialExposure && (
+                <FinancialExposureCard financialExposure={activeAnalysis.financialExposure} />
             )}
 
             {/* Charts Section */}
@@ -299,7 +359,7 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <RiskDistributionChart riskMetrics={analysis.riskMetrics || []} />
+                        <RiskDistributionChart riskMetrics={activeAnalysis.riskMetrics || []} />
                     </CardContent>
                 </Card>
 
@@ -310,7 +370,7 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {analysis.riskMetrics?.map((metric) => (
+                        {activeAnalysis.riskMetrics?.map((metric) => (
                             <LinearRiskMeter
                                 key={metric.category}
                                 score={metric.score}
@@ -326,13 +386,13 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                 <TabsList className="w-full justify-start overflow-x-auto bg-white dark:bg-slate-900 p-1 border border-border rounded-lg shadow-sm">
                     <TabsTrigger value="overview" className="data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800">Overview</TabsTrigger>
                     <TabsTrigger value="clauses" className="data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800">
-                        Clauses <Badge variant="secondary" className="ml-2 text-[10px]">{analysis.clauses?.length}</Badge>
+                        Clauses <Badge variant="secondary" className="ml-2 text-[10px]">{filteredClauses.length}</Badge>
                     </TabsTrigger>
                     <TabsTrigger value="obligations" className="data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800">
-                        Obligations <Badge variant="secondary" className="ml-2 text-[10px]">{analysis.obligations?.length}</Badge>
+                        Obligations <Badge variant="secondary" className="ml-2 text-[10px]">{filteredObligations.length}</Badge>
                     </TabsTrigger>
                     <TabsTrigger value="negotiation" className="data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800">
-                        Negotiation <Badge variant="secondary" className="ml-2 text-[10px]">{analysis.negotiationPoints?.length}</Badge>
+                        Negotiation <Badge variant="secondary" className="ml-2 text-[10px]">{filteredNegotiations.length}</Badge>
                     </TabsTrigger>
                 </TabsList>
 
@@ -341,26 +401,26 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                         <QuickStatCard
                             icon={<AlertTriangle className="h-5 w-5 text-red-500" />}
                             label="High Risk Clauses"
-                            value={analysis.clauses?.filter(c => (c && c.riskLevel === 'high')).length || 0}
+                            value={filteredClauses?.filter(c => (c && c.riskLevel === 'high')).length || 0}
                             onClick={() => setActiveTab('clauses')}
                         />
                         <QuickStatCard
                             icon={<Clock className="h-5 w-5 text-blue-500" />}
                             label="Key Obligations"
-                            value={analysis.obligations?.length || 0}
+                            value={filteredObligations?.length || 0}
                             onClick={() => setActiveTab('obligations')}
                         />
                         <QuickStatCard
                             icon={<MessageSquare className="h-5 w-5 text-green-500" />}
                             label="Negotiation Points"
-                            value={analysis.negotiationPoints?.length || 0}
+                            value={filteredNegotiations?.length || 0}
                             onClick={() => setActiveTab('negotiation')}
                         />
                     </div>
                 </TabsContent>
 
                 <TabsContent value="clauses" className="space-y-4 mt-4">
-                    {analysis.clauses?.map((clause, index) => (
+                    {filteredClauses?.map((clause, index) => (
                         <Card
                             key={index}
                             className="bg-white dark:bg-slate-900 border-border shadow-sm hover:shadow-md transition-all cursor-pointer group"
@@ -400,7 +460,7 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                 </TabsContent>
 
                 <TabsContent value="obligations" className="space-y-4 mt-4">
-                    {analysis.obligations?.map((msg, idx) => (
+                    {filteredObligations?.map((msg, idx) => (
                         <Card key={idx} className="bg-white dark:bg-slate-900 border-border shadow-sm hover:shadow-md transition-all">
                             <CardHeader>
                                 <div className="flex justify-between">
@@ -419,7 +479,7 @@ function AnalysisContent({ analysis, activeTab, setActiveTab, handleClauseClick,
                 </TabsContent>
 
                 <TabsContent value="negotiation" className="space-y-4 mt-4">
-                    {analysis.negotiationPoints?.map((point, idx) => (
+                    {filteredNegotiations?.map((point, idx) => (
                         <Card key={idx} className="bg-white dark:bg-slate-900 border-border shadow-sm">
                             <CardHeader>
                                 <div className="flex justify-between">
