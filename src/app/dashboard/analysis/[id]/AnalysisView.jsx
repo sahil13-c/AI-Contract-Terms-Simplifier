@@ -30,6 +30,15 @@ const PDFViewer = dynamic(() => import('@/components/PDFViewer').then(mod => mod
         </div>
     ),
 });
+
+const TextViewer = dynamic(() => import('@/components/TextViewer').then(mod => mod.TextViewer), {
+    ssr: false,
+    loading: () => (
+        <div className="flex items-center justify-center h-full bg-slate-100 dark:bg-slate-950">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+    ),
+});
 import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { AnalysisProgress } from '@/components/AnalysisProgress';
 import {
@@ -144,12 +153,19 @@ export default function AnalysisView({ analysis, document, error }) {
                                         <Minimize2 className="h-3 w-3" />
                                     </Button>
                                 </div>
-                                <div className="flex-1 relative bg-slate-100 dark:bg-slate-900">
-                                    <PDFViewer
-                                        fileUrl={document?.url}
-                                        highlightedPage={highlightedPage}
-                                        className="h-full w-full border-none rounded-none shadow-none"
-                                    />
+                                <div className="flex-1 min-h-0 relative bg-slate-100 dark:bg-slate-900">
+                                    {document?.file_name?.toLowerCase().endsWith('.txt') ? (
+                                        <TextViewer
+                                            fileUrl={document?.file_url || document?.url}
+                                            className="h-full w-full border-none rounded-none shadow-none"
+                                        />
+                                    ) : (
+                                        <PDFViewer
+                                            fileUrl={document?.file_url || document?.url}
+                                            highlightedPage={highlightedPage}
+                                            className="h-full w-full border-none rounded-none shadow-none"
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </Panel>

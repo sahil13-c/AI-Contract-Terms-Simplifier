@@ -49,6 +49,18 @@ export function RoleSwitcher({ roleAnalysis, onRoleChange }) {
     const primaryRole = roleAnalysis.primaryRole;
     const secondaryRole = roleAnalysis.secondaryRole;
 
+    const getRoleIcon = (roleName) => {
+        if (!roleName) return roleIcons.other;
+        const normalized = roleName.toLowerCase();
+        if (normalized.includes('employee')) return roleIcons.employee;
+        if (normalized.includes('employer')) return roleIcons.employer;
+        if (normalized.includes('tenant') || normalized.includes('renter')) return roleIcons.tenant;
+        if (normalized.includes('landlord')) return roleIcons.landlord;
+        if (normalized.includes('service') || normalized.includes('provider')) return roleIcons.service_provider;
+        if (normalized.includes('client') || normalized.includes('consumer') || normalized.includes('customer')) return roleIcons.client;
+        return roleIcons.other;
+    };
+
     return (
         <div className="space-y-4">
             {/* Role Switcher Controls */}
@@ -84,9 +96,9 @@ export function RoleSwitcher({ roleAnalysis, onRoleChange }) {
                                 : 'border-border/50 hover:border-primary/50'
                                 }`}
                         >
-                            <span className="text-3xl">{roleIcons[primaryRole] || roleIcons.other}</span>
+                            <span className="text-3xl">{getRoleIcon(primaryRole)}</span>
                             <div className="text-left">
-                                <div className="font-semibold">{roleLabels[primaryRole] || 'Primary Party'}</div>
+                                <div className="font-semibold">{primaryRole || 'Primary Party'}</div>
                                 <div className="text-xs text-muted-foreground">Your perspective</div>
                             </div>
                         </button>
@@ -103,9 +115,9 @@ export function RoleSwitcher({ roleAnalysis, onRoleChange }) {
                                 : 'border-border/50 hover:border-primary/50'
                                 }`}
                         >
-                            <span className="text-3xl">{roleIcons[secondaryRole] || roleIcons.other}</span>
+                            <span className="text-3xl">{getRoleIcon(secondaryRole)}</span>
                             <div className="text-left">
-                                <div className="font-semibold">{roleLabels[secondaryRole] || 'Other Party'}</div>
+                                <div className="font-semibold">{secondaryRole || 'Other Party'}</div>
                                 <div className="text-xs text-muted-foreground">Their perspective</div>
                             </div>
                         </button>
@@ -117,14 +129,14 @@ export function RoleSwitcher({ roleAnalysis, onRoleChange }) {
             {!showComparison ? (
                 <RoleAnalysisView
                     perspective={selectedRole === 'primary' ? roleAnalysis.primaryPerspective : roleAnalysis.secondaryPerspective}
-                    roleName={selectedRole === 'primary' ? roleLabels[primaryRole] : roleLabels[secondaryRole]}
+                    roleName={selectedRole === 'primary' ? (primaryRole || 'Primary Party') : (secondaryRole || 'Other Party')}
                 />
             ) : (
                 <ComparisonView
                     primaryPerspective={roleAnalysis.primaryPerspective}
                     secondaryPerspective={roleAnalysis.secondaryPerspective}
-                    primaryRole={roleLabels[primaryRole]}
-                    secondaryRole={roleLabels[secondaryRole]}
+                    primaryRole={primaryRole || 'Primary Party'}
+                    secondaryRole={secondaryRole || 'Other Party'}
                 />
             )}
         </div>

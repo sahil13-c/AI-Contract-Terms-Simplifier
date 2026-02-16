@@ -84,7 +84,7 @@ export async function uploadAndProcessDocument(formData) {
     try {
         // Step 1: Upload file
         const uploadResult = await uploadFile(formData);
-        
+
         if (uploadResult.error) {
             return { document: null, error: uploadResult.error };
         }
@@ -108,7 +108,7 @@ export async function uploadAndProcessDocument(formData) {
 
         // Step 4: Process document with AI (async - don't wait)
         const { processDocument } = await import('./ai');
-        
+
         // Process asynchronously without blocking the response
         processDocument(docResult.document.id, uploadResult.fileBuffer, title)
             .then(result => {
@@ -120,15 +120,62 @@ export async function uploadAndProcessDocument(formData) {
                 console.error('Background processing error:', error);
             });
 
-        return { 
-            document: { ...docResult.document, status: 'processing' }, 
-            error: null 
+        return {
+            document: { ...docResult.document, status: 'processing' },
+            error: null
         };
 
     } catch (error) {
         console.error('Upload and process error:', error);
         return { document: null, error: error.message };
     }
+}
+
+/**
+ * Upload and process a text-based contract
+ */
+/**
+ * Upload a text string as a file to Supabase Storage
+ */
+export async function uploadTextFile(text, title) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { fileUrl: null, error: 'Not authenticated' };
+    }
+
+    // Generate unique file name
+    const timestamp = Date.now();
+    const cleanTitle = title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+    const fileName = `${timestamp}-${cleanTitle}.txt`;
+    const filePath = `${user.id}/${fileName}`;
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+        .from('documents')
+        .upload(filePath, text, {
+            contentType: 'text/plain; charset=utf-8',
+            cacheControl: '3600',
+            upsert: false,
+        });
+
+    if (error) {
+        return { fileUrl: null, fileName: null, error: error.message };
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+    return {
+        fileUrl: publicUrl,
+        fileName: fileName,
+        fileSize: text.length,
+        error: null
+    };
 }
 
 /**
@@ -148,26 +195,33 @@ export async function uploadAndProcessTextContract(contractText, title) {
     }
 
     try {
-        // Step 1: Create document record (no file upload for text contracts)
+        // Step 1: Upload text as a file (so we can view it later)
+        const uploadResult = await uploadTextFile(contractText, title);
+
+        if (uploadResult.error) {
+            return { document: null, error: uploadResult.error };
+        }
+
+        // Step 2: Create document record
         const { createDocument } = await import('./documents');
         const docResult = await createDocument({
             title,
-            file_name: `${title}.txt`,
-            file_url: `text://${title}`, // Placeholder URL for text contracts
-            file_size: contractText.length,
+            file_name: uploadResult.fileName,
+            file_url: uploadResult.fileUrl,
+            file_size: uploadResult.fileSize,
         });
 
         if (docResult.error) {
             return { document: null, error: docResult.error };
         }
 
-        // Step 2: Update status to processing
+        // Step 3: Update status to processing
         const { updateDocumentStatus } = await import('./documents');
         await updateDocumentStatus(docResult.document.id, 'processing');
 
-        // Step 3: Process document with AI (async - don't wait)
+        // Step 4: Process document with AI (async - don't wait)
         const { processTextDocument } = await import('./ai');
-        
+
         // Process asynchronously without blocking the response
         processTextDocument(docResult.document.id, contractText, title)
             .then(result => {
@@ -179,9 +233,9 @@ export async function uploadAndProcessTextContract(contractText, title) {
                 console.error('Background processing error:', error);
             });
 
-        return { 
-            document: { ...docResult.document, status: 'processing' }, 
-            error: null 
+        return {
+            document: { ...docResult.document, status: 'processing' },
+            error: null
         };
 
     } catch (error) {

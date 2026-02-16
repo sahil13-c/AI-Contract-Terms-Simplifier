@@ -122,17 +122,17 @@ Provide your analysis in this EXACT JSON structure:
     "worstCase": "worst case financial scenario"
   },
   "roleAnalysis": {
-    "primaryRole": "role name",
-    "secondaryRole": "role name",
+    "primaryRole": "most descriptive role name for the user (e.g., 'Service Provider', 'Employee', 'Tenant')",
+    "secondaryRole": "most descriptive role name for the other party (e.g., 'Consumer', 'Employer', 'Landlord')",
     "primaryPerspective": {
-      "risks": ["risk 1", "risk 2"],
-      "benefits": ["benefit 1", "benefit 2"],
-      "keyConsiderations": ["consideration 1", "consideration 2"]
+      "risks": ["detailed risk 1", "detailed risk 2"],
+      "benefits": ["detailed benefit 1", "detailed benefit 2"],
+      "keyConsiderations": ["vital consideration 1", "vital consideration 2"]
     },
     "secondaryPerspective": {
-      "risks": ["risk 1", "risk 2"],
-      "benefits": ["benefit 1", "benefit 2"],
-      "keyConsiderations": ["consideration 1", "consideration 2"]
+      "risks": ["detailed risk 1", "detailed risk 2"],
+      "benefits": ["detailed benefit 1", "detailed benefit 2"],
+      "keyConsiderations": ["vital consideration 1", "vital consideration 2"]
     }
   },
   "riskMetrics": [
@@ -308,12 +308,17 @@ function generateFallbackAnalysis(contractText, documentTitle, isQuotaError = fa
       worstCase: "Legal dispute or financial penalty"
     },
     roleAnalysis: {
-      primaryRole: "Client/User",
-      secondaryRole: "Counterparty",
+      primaryRole: contractType === 'service' ? 'Service Provider' : (contractType === 'employment' ? 'Employee' : 'Client'),
+      secondaryRole: contractType === 'service' ? 'Consumer' : (contractType === 'employment' ? 'Employer' : 'Counterparty'),
       primaryPerspective: {
-        risks: ["Limited visibility in quick analysis", "Terms may vary by jurisdiction"],
-        benefits: ["Basic structure identified"],
-        keyConsiderations: ["Manual review required due to AI quota"]
+        risks: ["Limited visibility in quick analysis", "Terms may vary by jurisdiction", "Potential hidden costs not detected"],
+        benefits: ["Basic structure identified", "Document presence verified"],
+        keyConsiderations: ["Manual review required due to AI quota", "Check for hidden cancellation fees"]
+      },
+      secondaryPerspective: {
+        risks: ["Terms may be negotiated", "Obligations might be unclear"],
+        benefits: ["Standard clauses identified"],
+        keyConsiderations: ["Verify identity of other party", "Confirm payment terms manually"]
       }
     },
     riskMetrics: [
